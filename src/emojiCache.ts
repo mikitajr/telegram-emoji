@@ -1,6 +1,6 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as vscode from 'vscode';
+import * as fs from "fs";
+import * as path from "path";
+import * as vscode from "vscode";
 
 interface CacheEntry {
   path: string;
@@ -8,140 +8,107 @@ interface CacheEntry {
   base64?: string;
 }
 
-interface CacheData {
-  entries: Record<string, CacheEntry>;
-}
-
 export class EmojiCache {
-  private cacheDir: string;
-  private cacheFile: string;
-  private data: CacheData;
-  private expirationMs: number;
+  private readonly cacheDir: string;
+  private readonly cacheFile: string;
+  private entries: Record<string, CacheEntry> = {};
+  private expirationMs = 86400000; // 24 hours
 
   constructor(context: vscode.ExtensionContext) {
-    this.cacheDir = path.join(context.globalStorageUri.fsPath, 'emoji-cache');
-    this.cacheFile = path.join(this.cacheDir, 'cache.json');
-    this.data = { entries: {} };
-    this.expirationMs = 24 * 60 * 60 * 1000; // 24 hours default
-
-    this.ensureCacheDir();
-    this.loadCache();
+    this.cacheDir = path.join(context.globalStorageUri.fsPath, "emoji-cache");
+    this.cacheFile = path.join(this.cacheDir, "cache.json");
+    fs.mkdirSync(this.cacheDir, { recursive: true });
+    this.load();
   }
 
-  private ensureCacheDir(): void {
-    if (!fs.existsSync(this.cacheDir)) {
-      fs.mkdirSync(this.cacheDir, { recursive: true });
-    }
-  }
-
-  private loadCache(): void {
+  private load() {
     try {
       if (fs.existsSync(this.cacheFile)) {
-        const content = fs.readFileSync(this.cacheFile, 'utf-8');
-        this.data = JSON.parse(content);
+        const data = JSON.parse(fs.readFileSync(this.cacheFile, "utf-8"));
+        this.entries = data.entries ?? {};
       }
     } catch {
-      this.data = { entries: {} };
+      /* ignore */
     }
   }
 
-  private saveCache(): void {
+  private save() {
     try {
-      fs.writeFileSync(this.cacheFile, JSON.stringify(this.data, null, 2));
-    } catch (error) {
-      console.error('Failed to save cache:', error);
+      fs.writeFileSync(
+        this.cacheFile,
+        JSON.stringify({ entries: this.entries }),
+      );
+    } catch {
+      /* ignore */
     }
   }
 
-  setExpiration(seconds: number): void {
+  setExpiration(seconds: number) {
     this.expirationMs = seconds * 1000;
   }
 
-  getCacheDir(): string {
+  getCacheDir() {
     return this.cacheDir;
   }
 
-  get(emojiId: string): CacheEntry | null {
-    const entry = this.data.entries[emojiId];
-    if (!entry) {
-      return null;
-    }
-
-    // Check if expired
-    if (Date.now() - entry.timestamp > this.expirationMs) {
-      this.remove(emojiId);
-      return null;
-    }
-
-    // Check if file still exists
-    if (!fs.existsSync(entry.path)) {
-      this.remove(emojiId);
-      return null;
-    }
-
-    return entry;
-  }
-
-  set(emojiId: string, filePath: string): void {
-    // Read file and convert to base64 for inline display
-    let base64: string | undefined;
-    try {
-      const fileBuffer = fs.readFileSync(filePath);
-      const ext = path.extname(filePath).toLowerCase();
-      const mimeType = ext === '.webp' ? 'image/webp' :
-                       ext === '.png' ? 'image/png' :
-                       ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/webp';
-      base64 = `data:${mimeType};base64,${fileBuffer.toString('base64')}`;
-    } catch {
-      // Ignore base64 conversion errors
-    }
-
-    this.data.entries[emojiId] = {
-      path: filePath,
-      timestamp: Date.now(),
-      base64,
-    };
-    this.saveCache();
-  }
-
-  remove(emojiId: string): void {
-    const entry = this.data.entries[emojiId];
-    if (entry) {
-      try {
-        if (fs.existsSync(entry.path)) {
-          fs.unlinkSync(entry.path);
-        }
-      } catch {
-        // Ignore deletion errors
-      }
-      delete this.data.entries[emojiId];
-      this.saveCache();
-    }
-  }
-
-  clear(): void {
-    // Delete all cached files
-    for (const emojiId of Object.keys(this.data.entries)) {
-      const entry = this.data.entries[emojiId];
-      try {
-        if (fs.existsSync(entry.path)) {
-          fs.unlinkSync(entry.path);
-        }
-      } catch {
-        // Ignore deletion errors
-      }
-    }
-    this.data = { entries: {} };
-    this.saveCache();
+  private isValid(entry: CacheEntry): boolean {
+    return (
+      Date.now() - entry.timestamp <= this.expirationMs &&
+      fs.existsSync(entry.path)
+    );
   }
 
   getBase64(emojiId: string): string | null {
-    const entry = this.get(emojiId);
-    return entry?.base64 || null;
+    const entry = this.entries[emojiId];
+    if (!entry || !this.isValid(entry)) {
+      if (entry) this.remove(emojiId);
+      return null;
+    }
+    return entry.base64 ?? null;
   }
 
-  getFilePath(emojiId: string): string | null {
-    const entry = this.get(emojiId);
-    return entry?.path || null;
+  set(emojiId: string, filePath: string) {
+    let base64: string | undefined;
+    try {
+      const buffer = fs.readFileSync(filePath);
+      const ext = path.extname(filePath).toLowerCase();
+      const mime =
+        ext === ".png"
+          ? "image/png"
+          : ext === ".jpg" || ext === ".jpeg"
+            ? "image/jpeg"
+            : "image/webp";
+      base64 = `data:${mime};base64,${buffer.toString("base64")}`;
+    } catch {
+      /* ignore */
+    }
+
+    this.entries[emojiId] = { path: filePath, timestamp: Date.now(), base64 };
+    this.save();
+  }
+
+  remove(emojiId: string) {
+    const entry = this.entries[emojiId];
+    if (entry) {
+      try {
+        fs.unlinkSync(entry.path);
+      } catch {
+        /* ignore */
+      }
+      delete this.entries[emojiId];
+      this.save();
+    }
+  }
+
+  clear() {
+    for (const entry of Object.values(this.entries)) {
+      try {
+        fs.unlinkSync(entry.path);
+      } catch {
+        /* ignore */
+      }
+    }
+    this.entries = {};
+    this.save();
   }
 }

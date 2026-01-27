@@ -1,168 +1,130 @@
-import * as vscode from 'vscode';
-import * as path from 'path';
-import { EmojiMatch } from './emojiDetector';
-import { EmojiCache } from './emojiCache';
-import { TelegramApi } from './telegramApi';
+import * as vscode from "vscode";
+import { EmojiMatch } from "./emojiDetector";
+import { EmojiCache } from "./emojiCache";
+import { TelegramApi } from "./telegramApi";
 
 export class DecorationProvider {
   private decorationType: vscode.TextEditorDecorationType;
-  private cache: EmojiCache;
   private api: TelegramApi | null = null;
-  private pendingRequests = new Map<string, Promise<string | null>>();
-  private previewSize: number = 20;
-  private hoverSize: number = 128;
-  private enabled: boolean = true;
+  private pending = new Map<string, Promise<string | null>>();
+  private hoverSize = 128;
+  private enabled = true;
 
-  constructor(cache: EmojiCache) {
-    this.cache = cache;
+  constructor(private readonly cache: EmojiCache) {
     this.decorationType = this.createDecorationType();
   }
 
-  private createDecorationType(): vscode.TextEditorDecorationType {
+  private getLineHeight(): number {
+    const cfg = vscode.workspace.getConfiguration("editor");
+    const fontSize = cfg.get<number>("fontSize", 14);
+    const lineHeight = cfg.get<number>("lineHeight", 0);
+    return lineHeight || Math.round(fontSize * 1.5);
+  }
+
+  private createDecorationType() {
+    const size = this.getLineHeight();
     return vscode.window.createTextEditorDecorationType({
-      after: {
-        margin: '0 0 0 4px',
-        width: `${this.previewSize}px`,
-        height: `${this.previewSize}px`,
-      },
+      after: { margin: "0 0 0 6px", width: `${size}px`, height: `${size}px` },
     });
   }
 
-  updateSettings(config: vscode.WorkspaceConfiguration): void {
-    const botToken = config.get<string>('botToken', '');
-    this.previewSize = config.get<number>('previewSize', 20);
-    this.hoverSize = config.get<number>('hoverPreviewSize', 128);
-    this.enabled = config.get<boolean>('enableInlinePreview', true);
-
-    const cacheExpiration = config.get<number>('cacheExpiration', 86400);
-    this.cache.setExpiration(cacheExpiration);
-
-    if (botToken) {
-      this.api = new TelegramApi(botToken);
-    } else {
-      this.api = null;
-    }
-
-    // Recreate decoration type with new size
+  updateSettings(config: vscode.WorkspaceConfiguration) {
+    const botToken = config.get<string>("botToken", "");
+    this.hoverSize = config.get<number>("hoverPreviewSize", 128);
+    this.enabled = config.get<boolean>("enableInlinePreview", true);
+    this.cache.setExpiration(config.get<number>("cacheExpiration", 86400));
+    this.api = botToken ? new TelegramApi(botToken) : null;
     this.decorationType.dispose();
     this.decorationType = this.createDecorationType();
   }
 
-  async updateDecorations(editor: vscode.TextEditor, matches: EmojiMatch[]): Promise<void> {
+  async updateDecorations(editor: vscode.TextEditor, matches: EmojiMatch[]) {
     if (!this.enabled || !this.api) {
       editor.setDecorations(this.decorationType, []);
       return;
     }
 
-    const decorations: vscode.DecorationOptions[] = [];
-
-    for (const match of matches) {
-      const decoration = await this.createDecoration(match);
-      if (decoration) {
-        decorations.push(decoration);
-      }
-    }
-
-    editor.setDecorations(this.decorationType, decorations);
+    const decorations = await Promise.all(
+      matches.map((m) => this.createDecoration(m)),
+    );
+    editor.setDecorations(
+      this.decorationType,
+      decorations.filter(Boolean) as vscode.DecorationOptions[],
+    );
   }
 
-  private async createDecoration(match: EmojiMatch): Promise<vscode.DecorationOptions | null> {
+  private async createDecoration(
+    match: EmojiMatch,
+  ): Promise<vscode.DecorationOptions | null> {
     const base64 = await this.getEmojiBase64(match.emojiId);
+    const size = this.getLineHeight();
 
-    if (!base64) {
-      // Show fallback with warning
-      return {
-        range: match.range,
-        hoverMessage: this.createHoverMessage(match, null),
-      };
-    }
-
-    // Create inline preview using contentIconPath
-    const decoration: vscode.DecorationOptions = {
-      range: match.range,
-      hoverMessage: this.createHoverMessage(match, base64),
-      renderOptions: {
-        after: {
-          contentIconPath: vscode.Uri.parse(base64),
-          width: `${this.previewSize}px`,
-          height: `${this.previewSize}px`,
-        },
-      },
-    };
-
-    return decoration;
-  }
-
-  private createHoverMessage(match: EmojiMatch, base64: string | null): vscode.MarkdownString {
-    const md = new vscode.MarkdownString();
-    md.isTrusted = true;
-    md.supportHtml = true;
+    const hover = new vscode.MarkdownString();
+    hover.isTrusted = true;
+    hover.supportHtml = true;
 
     if (base64) {
-      md.appendMarkdown(`<img src="${base64}" width="${this.hoverSize}" height="${this.hoverSize}" />\n\n`);
+      hover.appendMarkdown(
+        `<div style="text-align:center;padding:8px;"><img src="${base64}" width="${this.hoverSize}" height="${this.hoverSize}" style="border-radius:8px;"/></div>\n\n` +
+          `| | |\n|---|---|\n| **ID** | \`${match.emojiId}\` |\n` +
+          (match.fallbackEmoji !== "😀"
+            ? `| **Fallback** | ${match.fallbackEmoji} |\n`
+            : ""),
+      );
     } else {
-      md.appendMarkdown(`**⚠️ Could not load emoji**\n\n`);
+      hover.appendMarkdown(
+        `#### Could not load emoji\n\n**ID:** \`${match.emojiId}\`\n\n`,
+      );
+      if (!this.api)
+        hover.appendMarkdown(
+          `*Set \`telegramEmojiPreview.botToken\` in settings*`,
+        );
     }
 
-    md.appendMarkdown(`**Telegram Emoji**\n\n`);
-    md.appendMarkdown(`- **ID:** \`${match.emojiId}\`\n`);
-    md.appendMarkdown(`- **Fallback:** ${match.fallbackEmoji}\n`);
-
-    if (!this.api) {
-      md.appendMarkdown(`\n---\n`);
-      md.appendMarkdown(`*Configure bot token in settings to see preview*`);
-    }
-
-    return md;
+    return {
+      range: match.range,
+      hoverMessage: hover,
+      ...(base64 && {
+        renderOptions: {
+          after: {
+            contentIconPath: vscode.Uri.parse(base64),
+            width: `${size}px`,
+            height: `${size}px`,
+          },
+        },
+      }),
+    };
   }
 
   private async getEmojiBase64(emojiId: string): Promise<string | null> {
-    // Check cache first
     const cached = this.cache.getBase64(emojiId);
-    if (cached) {
-      return cached;
-    }
+    if (cached) return cached;
+    if (!this.api) return null;
 
-    if (!this.api) {
-      return null;
+    if (!this.pending.has(emojiId)) {
+      this.pending.set(
+        emojiId,
+        (async () => {
+          try {
+            const filePath = await this.api!.getEmojiImagePath(
+              emojiId,
+              this.cache.getCacheDir(),
+            );
+            if (filePath) {
+              this.cache.set(emojiId, filePath);
+              return this.cache.getBase64(emojiId);
+            }
+          } catch {
+            /* ignore */
+          }
+          return null;
+        })().finally(() => this.pending.delete(emojiId)),
+      );
     }
-
-    // Check if request is already pending
-    if (this.pendingRequests.has(emojiId)) {
-      return this.pendingRequests.get(emojiId)!;
-    }
-
-    // Fetch from API
-    const promise = this.fetchEmoji(emojiId);
-    this.pendingRequests.set(emojiId, promise);
-
-    try {
-      const result = await promise;
-      return result;
-    } finally {
-      this.pendingRequests.delete(emojiId);
-    }
+    return this.pending.get(emojiId)!;
   }
 
-  private async fetchEmoji(emojiId: string): Promise<string | null> {
-    if (!this.api) {
-      return null;
-    }
-
-    try {
-      const filePath = await this.api.getEmojiImagePath(emojiId, this.cache.getCacheDir());
-      if (filePath) {
-        this.cache.set(emojiId, filePath);
-        return this.cache.getBase64(emojiId);
-      }
-    } catch (error) {
-      console.error(`Failed to fetch emoji ${emojiId}:`, error);
-    }
-
-    return null;
-  }
-
-  dispose(): void {
+  dispose() {
     this.decorationType.dispose();
   }
 }
