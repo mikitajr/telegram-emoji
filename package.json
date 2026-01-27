@@ -3,7 +3,7 @@
   "displayName": "Telegram Emoji Preview",
   "description": "Preview Telegram premium custom emojis inline in your code",
   "version": "0.1.0",
-  "publisher": "telegram-emoji-preview",
+  "publisher": "mikitajr",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -69,7 +69,6 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "lint": "eslint src --ext ts",
@@ -85,7 +84,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/user/telegram-emoji-preview"
+    "url": "https://github.com/mikitajr/telegram-emoji-view"
   },
   "license": "MIT"
 }
