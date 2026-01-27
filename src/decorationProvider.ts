@@ -14,17 +14,16 @@ export class DecorationProvider {
     this.decorationType = this.createDecorationType();
   }
 
-  private getLineHeight(): number {
-    const cfg = vscode.workspace.getConfiguration("editor");
-    const fontSize = cfg.get<number>("fontSize", 14);
-    const lineHeight = cfg.get<number>("lineHeight", 0);
-    return lineHeight || Math.round(fontSize * 1.5);
+  private getFontSize(): number {
+    return vscode.workspace
+      .getConfiguration("editor")
+      .get<number>("fontSize", 14);
   }
 
   private createDecorationType() {
-    const size = this.getLineHeight();
+    const size = this.getFontSize();
     return vscode.window.createTextEditorDecorationType({
-      after: { margin: "0 0 0 6px", width: `${size}px`, height: `${size}px` },
+      after: { margin: "0 0 0 4px", width: `${size}px`, height: `${size}px` },
     });
   }
 
@@ -43,7 +42,6 @@ export class DecorationProvider {
       editor.setDecorations(this.decorationType, []);
       return;
     }
-
     const decorations = await Promise.all(
       matches.map((m) => this.createDecoration(m)),
     );
@@ -57,7 +55,7 @@ export class DecorationProvider {
     match: EmojiMatch,
   ): Promise<vscode.DecorationOptions | null> {
     const base64 = await this.getEmojiBase64(match.emojiId);
-    const size = this.getLineHeight();
+    const size = this.getFontSize();
 
     const hover = new vscode.MarkdownString();
     hover.isTrusted = true;
@@ -65,20 +63,26 @@ export class DecorationProvider {
 
     if (base64) {
       hover.appendMarkdown(
-        `<div style="text-align:center;padding:8px;"><img src="${base64}" width="${this.hoverSize}" height="${this.hoverSize}" style="border-radius:8px;"/></div>\n\n` +
-          `| | |\n|---|---|\n| **ID** | \`${match.emojiId}\` |\n` +
-          (match.fallbackEmoji !== "😀"
-            ? `| **Fallback** | ${match.fallbackEmoji} |\n`
-            : ""),
+        `<div style="text-align:center;padding:12px 16px;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);border-radius:12px;">` +
+          `<img src="${base64}" width="${this.hoverSize}" height="${this.hoverSize}" style="border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.3);"/>` +
+          `</div>\n\n` +
+          `**Telegram Custom Emoji**\n\n` +
+          `| Property | Value |\n|:--|:--|\n` +
+          `| ID | \`${match.emojiId}\` |\n` +
+          `| Fallback | ${match.fallbackEmoji} |\n` +
+          `| Type | Premium Emoji |`,
       );
     } else {
       hover.appendMarkdown(
-        `#### Could not load emoji\n\n**ID:** \`${match.emojiId}\`\n\n`,
+        `**Telegram Custom Emoji**\n\n` +
+          `⚠️ Could not load preview\n\n` +
+          `| Property | Value |\n|:--|:--|\n` +
+          `| ID | \`${match.emojiId}\` |\n` +
+          `| Fallback | ${match.fallbackEmoji} |\n\n` +
+          (this.api
+            ? "*Failed to fetch from Telegram API*"
+            : "*Configure `telegramEmojiPreview.botToken` to enable previews*"),
       );
-      if (!this.api)
-        hover.appendMarkdown(
-          `*Set \`telegramEmojiPreview.botToken\` in settings*`,
-        );
     }
 
     return {
