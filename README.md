@@ -4,15 +4,6 @@ VS Code extension that renders Telegram premium custom emojis inline, right in y
 
 Detects `<tg-emoji emoji-id='...'>` tags and displays the actual custom emoji image fetched from the Telegram Bot API.
 
-## Features
-
-- Inline emoji preview next to `<tg-emoji>` tags
-- Collapsed mode (cursor away): tag shrinks, emoji replaces content
-- Expanded mode (cursor on line): full tag visible, emoji shown after the closing quote
-- Hover with emoji ID and copy button
-- Skeleton placeholder while loading / for invalid IDs
-- Local file cache (24h expiration)
-
 ### Collapsed
 
 <!-- TODO: screenshot collapsed -->
