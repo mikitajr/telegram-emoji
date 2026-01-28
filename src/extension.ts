@@ -27,6 +27,25 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "telegramEmoji.setToken",
+      async () => {
+        const token = await vscode.window.showInputBox({
+          prompt: "Enter your Telegram Bot API token",
+          placeHolder: "123456789:ABCdefGHIjklMNOpqrsTUVwxyz",
+          password: true,
+        });
+        if (token !== undefined) {
+          await vscode.workspace
+            .getConfiguration("telegramEmoji")
+            .update("botToken", token, vscode.ConfigurationTarget.Global);
+          vscode.window.showInformationMessage(
+            token ? "Telegram Emoji: Token saved" : "Telegram Emoji: Token cleared",
+          );
+        }
+      },
+    ),
+
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("telegramEmoji")) {
         decorationProvider.updateSettings(
