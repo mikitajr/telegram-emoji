@@ -3,16 +3,15 @@ import * as path from "path";
 import * as vscode from "vscode";
 
 interface CacheEntry {
-  path: string;
   timestamp: number;
-  base64?: string;
+  base64: string;
 }
 
 export class EmojiCache {
   private readonly cacheDir: string;
   private readonly cacheFile: string;
   private entries: Record<string, CacheEntry> = {};
-  private expirationMs = 86400000; // 24 hours
+  private expirationMs = 86400000;
 
   constructor(context: vscode.ExtensionContext) {
     this.cacheDir = path.join(context.globalStorageUri.fsPath, "emoji-cache");
@@ -24,8 +23,8 @@ export class EmojiCache {
   private load() {
     try {
       if (fs.existsSync(this.cacheFile)) {
-        const data = JSON.parse(fs.readFileSync(this.cacheFile, "utf-8"));
-        this.entries = data.entries ?? {};
+        this.entries =
+          JSON.parse(fs.readFileSync(this.cacheFile, "utf-8")).entries ?? {};
       }
     } catch {
       /* ignore */
@@ -51,24 +50,16 @@ export class EmojiCache {
     return this.cacheDir;
   }
 
-  private isValid(entry: CacheEntry): boolean {
-    return (
-      Date.now() - entry.timestamp <= this.expirationMs &&
-      fs.existsSync(entry.path)
-    );
-  }
-
-  getBase64(emojiId: string): string | null {
+  get(emojiId: string): string | null {
     const entry = this.entries[emojiId];
-    if (!entry || !this.isValid(entry)) {
+    if (!entry || Date.now() - entry.timestamp > this.expirationMs) {
       if (entry) this.remove(emojiId);
       return null;
     }
-    return entry.base64 ?? null;
+    return entry.base64;
   }
 
   set(emojiId: string, filePath: string) {
-    let base64: string | undefined;
     try {
       const buffer = fs.readFileSync(filePath);
       const ext = path.extname(filePath).toLowerCase();
@@ -78,36 +69,23 @@ export class EmojiCache {
           : ext === ".jpg" || ext === ".jpeg"
             ? "image/jpeg"
             : "image/webp";
-      base64 = `data:${mime};base64,${buffer.toString("base64")}`;
+      this.entries[emojiId] = {
+        timestamp: Date.now(),
+        base64: `data:${mime};base64,${buffer.toString("base64")}`,
+      };
+      this.save();
+      fs.unlinkSync(filePath);
     } catch {
       /* ignore */
     }
-
-    this.entries[emojiId] = { path: filePath, timestamp: Date.now(), base64 };
-    this.save();
   }
 
   remove(emojiId: string) {
-    const entry = this.entries[emojiId];
-    if (entry) {
-      try {
-        fs.unlinkSync(entry.path);
-      } catch {
-        /* ignore */
-      }
-      delete this.entries[emojiId];
-      this.save();
-    }
+    delete this.entries[emojiId];
+    this.save();
   }
 
   clear() {
-    for (const entry of Object.values(this.entries)) {
-      try {
-        fs.unlinkSync(entry.path);
-      } catch {
-        /* ignore */
-      }
-    }
     this.entries = {};
     this.save();
   }

@@ -20,21 +20,24 @@ export function activate(context: vscode.ExtensionContext) {
 
     clearTimeout(updateTimeout);
     updateTimeout = setTimeout(async () => {
+      decorationProvider.setCursorLine(target.selection.active.line);
       const matches = detectEmojis(target.document);
       await decorationProvider.updateDecorations(target, matches);
-    }, 150);
+    }, 50);
   };
 
   context.subscriptions.push(
     vscode.commands.registerCommand("telegramEmojiPreview.clearCache", () => {
       cache.clear();
-      vscode.window.showInformationMessage("Telegram Emoji cache cleared");
+      vscode.window.showInformationMessage("Telegram Emoji: Cache cleared");
       triggerUpdate();
     }),
-    vscode.commands.registerCommand(
-      "telegramEmojiPreview.refresh",
-      triggerUpdate,
-    ),
+
+    vscode.commands.registerCommand("telegramEmojiPreview.refresh", () => {
+      triggerUpdate();
+      vscode.window.showInformationMessage("Telegram Emoji: Refreshed");
+    }),
+
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("telegramEmojiPreview")) {
         decorationProvider.updateSettings(
@@ -43,12 +46,21 @@ export function activate(context: vscode.ExtensionContext) {
         triggerUpdate();
       }
     }),
+
     vscode.window.onDidChangeActiveTextEditor(triggerUpdate),
+
+    vscode.window.onDidChangeTextEditorSelection((e) => {
+      if (e.textEditor === vscode.window.activeTextEditor) {
+        triggerUpdate(e.textEditor);
+      }
+    }),
+
     vscode.workspace.onDidChangeTextDocument((e) => {
       if (e.document === vscode.window.activeTextEditor?.document) {
         triggerUpdate();
       }
     }),
+
     {
       dispose: () => {
         decorationProvider.dispose();
