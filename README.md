@@ -52,16 +52,8 @@ Or add to `settings.json`:
 
 | Setting | Default | Description |
 |---|---|---|
-| `telegramEmojiPreview.botToken` | `""` | Telegram Bot API token |
+| `telegramEmojiPreview.botToken` | None | Telegram Bot API token |
 | `telegramEmojiPreview.enableInlinePreview` | `true` | Show inline emoji preview |
-
-## Supported syntax
-
-```html
-<tg-emoji emoji-id='5368324170671202286'>fallback</tg-emoji>
-<tg-emoji emoji_id="5406764870999774418">fallback</tg-emoji>
-<tg-emoji emoji-id='5368324170671202286'/>
-```
 
 ## License
 
