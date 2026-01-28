@@ -10,7 +10,7 @@ Detects `<tg-emoji emoji-id='...'>` tags and displays the actual custom emoji im
 
 ### Expanded
 
-<img src="assets/expanded.png" width="400"/>
+<img src="assets/expanded.png" width="600"/>
 
 ### Hover preview
 
