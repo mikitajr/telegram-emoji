@@ -43,7 +43,7 @@ Or add to `settings.json`:
 
 | Setting | Default | Description |
 |---|---|---|
-| `telegramEmojiPreview.botToken` | None | Telegram Bot API token |
+| `telegramEmojiPreview.botToken` | `None` | Telegram Bot API token |
 | `telegramEmojiPreview.enableInlinePreview` | `true` | Show inline emoji preview |
 
 ## License
