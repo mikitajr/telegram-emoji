@@ -6,15 +6,15 @@ Detects `<tg-emoji emoji-id='...'>` tags and displays the actual custom emoji im
 
 ### Collapsed
 
-<!-- TODO: screenshot collapsed -->
+![Collapsed](assets/collapsed.png)
 
 ### Expanded
 
-<!-- TODO: screenshot expanded -->
+![Expanded](assets/expanded.png)
 
 ### Hover preview
 
-<!-- TODO: screenshot hover -->
+![Hover](assets/hover.png)
 
 ## Requirements
 
