@@ -19,8 +19,9 @@
   "keywords": [
     "telegram",
     "emoji",
-    "preview",
-    "sticker"
+    "custom",
+    "premium",
+    "preview"
   ],
   "activationEvents": [
     "onStartupFinished"
