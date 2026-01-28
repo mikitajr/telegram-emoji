@@ -2,7 +2,7 @@
   "name": "telegram-emoji",
   "version": "1.0.0",
   "displayName": "Telegram Emoji",
-  "description": "Preview Telegram premium custom emojis inline in your code",
+  "description": "Render Telegram premium custom emojis inline in your editor",
   "publisher": "mikitajr",
   "license": "MIT",
   "icon": "icon.png",
@@ -28,7 +28,7 @@
   "main": "./out/extension.js",
   "contributes": {
     "configuration": {
-      "title": "Telegram Emoji Preview",
+      "title": "Telegram Emoji",
       "properties": {
         "telegramEmojiPreview.botToken": {
           "type": "string",

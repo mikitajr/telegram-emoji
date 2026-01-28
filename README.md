@@ -1,4 +1,4 @@
-# Telegram Emoji Preview
+# Telegram Emoji
 
 VS Code extension that renders Telegram premium custom emojis inline, right in your editor.
 
@@ -29,7 +29,7 @@ This extension requires a **Telegram Bot API token** to fetch custom emoji image
 
 ### Configure the extension
 
-Open VS Code settings (`Ctrl+,`) and search for `Telegram Emoji Preview`, then paste the token into **Bot Token** field.
+Open VS Code settings (`Ctrl+,`) and search for `Telegram Emoji`, then paste the token into **Bot Token** field.
 
 Or add to `settings.json`:
 
