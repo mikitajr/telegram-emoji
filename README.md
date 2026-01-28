@@ -29,7 +29,7 @@ This extension requires a **Telegram Bot API token** to fetch custom emoji image
 
 ### Configure the extension
 
-Open VS Code settings (`Ctrl+,`) and search for `Telegram Emoji`, then paste the token into **Bot Token** field.
+`Ctrl+Shift+P` → **Telegram Emoji: Set Bot Token** → paste your token.
 
 Or add to `settings.json`:
 
