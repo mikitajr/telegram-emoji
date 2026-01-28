@@ -3,6 +3,9 @@ import { EmojiCache } from "./emojiCache";
 import { DecorationProvider } from "./decorationProvider";
 import { detectEmojis } from "./emojiDetector";
 
+let testText: string = "<tg-emoji emoji-id='5406764870999774418'>😀</tg-emoji>"
+
+
 let cache: EmojiCache;
 let decorationProvider: DecorationProvider;
 let updateTimeout: ReturnType<typeof setTimeout> | undefined;

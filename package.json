@@ -1,6 +1,6 @@
 {
   "name": "telegram-emoji",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "Telegram Emoji",
   "description": "Render Telegram premium custom emojis inline in your editor",
   "publisher": "mikitajr",
