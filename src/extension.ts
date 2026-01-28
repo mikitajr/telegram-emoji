@@ -11,7 +11,7 @@ export function activate(context: vscode.ExtensionContext) {
   cache = new EmojiCache(context);
   decorationProvider = new DecorationProvider(cache);
 
-  const config = vscode.workspace.getConfiguration("telegramEmojiPreview");
+  const config = vscode.workspace.getConfiguration("telegramEmoji");
   decorationProvider.updateSettings(config);
 
   const triggerUpdate = (editor?: vscode.TextEditor) => {
@@ -28,9 +28,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (e.affectsConfiguration("telegramEmojiPreview")) {
+      if (e.affectsConfiguration("telegramEmoji")) {
         decorationProvider.updateSettings(
-          vscode.workspace.getConfiguration("telegramEmojiPreview"),
+          vscode.workspace.getConfiguration("telegramEmoji"),
         );
         triggerUpdate();
       }

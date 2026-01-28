@@ -30,12 +30,12 @@
     "configuration": {
       "title": "Telegram Emoji",
       "properties": {
-        "telegramEmojiPreview.botToken": {
+        "telegramEmoji.botToken": {
           "type": "string",
           "default": "",
           "description": "Telegram Bot API token for fetching custom emojis"
         },
-        "telegramEmojiPreview.enableInlinePreview": {
+        "telegramEmoji.enableInline": {
           "type": "boolean",
           "default": true,
           "description": "Show inline emoji preview next to the tag"
@@ -44,7 +44,7 @@
     },
     "commands": [
       {
-        "command": "telegramEmojiPreview.setToken",
+        "command": "telegramEmoji.setToken",
         "title": "Telegram Emoji: Set Bot Token"
       }
     ]

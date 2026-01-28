@@ -97,7 +97,7 @@ export class DecorationProvider {
 
   updateSettings(config: vscode.WorkspaceConfiguration) {
     const botToken = config.get<string>("botToken", "");
-    this.enabled = config.get<boolean>("enableInlinePreview", true);
+    this.enabled = config.get<boolean>("enableInline", true);
     this.api = botToken ? new TelegramApi(botToken) : null;
     this.disposeDecorationTypes();
     const size = this.getInlineSize();

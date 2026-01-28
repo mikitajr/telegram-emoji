@@ -35,7 +35,7 @@ Or add to `settings.json`:
 
 ```json
 {
-  "telegramEmojiPreview.botToken": "YOUR_BOT_TOKEN_HERE"
+  "telegramEmoji.botToken": "YOUR_BOT_TOKEN_HERE"
 }
 ```
 
@@ -43,8 +43,8 @@ Or add to `settings.json`:
 
 | Setting | Default | Description |
 |---|---|---|
-| `telegramEmojiPreview.botToken` | `None` | Telegram Bot API token |
-| `telegramEmojiPreview.enableInlinePreview` | `true` | Show inline emoji preview |
+| `telegramEmoji.botToken` | `None` | Telegram Bot API token |
+| `telegramEmoji.enableInline` | `true` | Show inline emoji preview |
 
 ## License
 
