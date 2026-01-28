@@ -13,8 +13,6 @@ export interface EmojiMatch {
 const TAG_PATTERN =
   /<tg-emoji\s+(emoji[-_]id=["']\d+["'])\s*>([^<]*)<\/tg-emoji>/gi;
 const SELF_CLOSING_PATTERN = /<tg-emoji\s+(emoji[-_]id=["']\d+["'])\s*\/>/gi;
-const CONFIG_PATTERN =
-  /(?:custom[-_]?emoji(?:[-_]id)?)\s*[:=]\s*["']?(\d{10,})["']?/gi;
 
 export function detectEmojis(document: vscode.TextDocument): EmojiMatch[] {
   const text = document.getText();
@@ -67,7 +65,7 @@ export function detectEmojis(document: vscode.TextDocument): EmojiMatch[] {
         document.positionAt(attrEnd),
       ),
       attrWithSpaceRange: new vscode.Range(
-        document.positionAt(attrStart),
+        document.positionAt(fullStart + 9),
         document.positionAt(attrWithSpaceEnd),
       ),
       fallbackRange,
@@ -107,32 +105,9 @@ export function detectEmojis(document: vscode.TextDocument): EmojiMatch[] {
         document.positionAt(attrEnd),
       ),
       attrWithSpaceRange: new vscode.Range(
-        document.positionAt(attrStart),
+        document.positionAt(fullStart + 9),
         document.positionAt(attrWithSpaceEnd),
       ),
-      fallbackRange: null,
-      line: startPos.line,
-    });
-  }
-
-  CONFIG_PATTERN.lastIndex = 0;
-  while ((m = CONFIG_PATTERN.exec(text))) {
-    const key = `${m[1]}-${m.index}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    const startPos = document.positionAt(m.index);
-    const fullRange = new vscode.Range(
-      startPos,
-      document.positionAt(m.index + m[0].length),
-    );
-
-    matches.push({
-      emojiId: m[1],
-      fallbackEmoji: null,
-      fullRange,
-      attrRange: fullRange,
-      attrWithSpaceRange: fullRange,
       fallbackRange: null,
       line: startPos.line,
     });

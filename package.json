@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mikitajr/telegram-emoji-view"
+    "url": "https://github.com/mikitajr/telegram-emoji"
   },
   "engines": {
     "vscode": "^1.85.0"
@@ -34,33 +34,17 @@
           "default": "",
           "description": "Telegram Bot API token for fetching custom emojis"
         },
-        "telegramEmojiPreview.hoverPreviewSize": {
-          "type": "number",
-          "default": 128,
-          "minimum": 64,
-          "maximum": 512,
-          "description": "Size of emoji preview on hover in pixels"
-        },
         "telegramEmojiPreview.enableInlinePreview": {
           "type": "boolean",
           "default": true,
           "description": "Show inline emoji preview next to the tag"
-        },
-        "telegramEmojiPreview.cacheExpiration": {
-          "type": "number",
-          "default": 86400,
-          "description": "Cache expiration time in seconds (default: 24 hours)"
         }
       }
     },
     "commands": [
       {
-        "command": "telegramEmojiPreview.clearCache",
-        "title": "Telegram Emoji: Clear Cache"
-      },
-      {
-        "command": "telegramEmojiPreview.refresh",
-        "title": "Telegram Emoji: Refresh Previews"
+        "command": "telegramEmojiPreview.setToken",
+        "title": "Telegram Emoji: Set Bot Token"
       }
     ]
   },

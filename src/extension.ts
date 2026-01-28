@@ -27,17 +27,6 @@ export function activate(context: vscode.ExtensionContext) {
   };
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("telegramEmojiPreview.clearCache", () => {
-      cache.clear();
-      vscode.window.showInformationMessage("Telegram Emoji: Cache cleared");
-      triggerUpdate();
-    }),
-
-    vscode.commands.registerCommand("telegramEmojiPreview.refresh", () => {
-      triggerUpdate();
-      vscode.window.showInformationMessage("Telegram Emoji: Refreshed");
-    }),
-
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("telegramEmojiPreview")) {
         decorationProvider.updateSettings(

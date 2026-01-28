@@ -9,7 +9,6 @@ export class DecorationProvider {
   private emojiGlowType: vscode.TextEditorDecorationType;
   private api: TelegramApi | null = null;
   private pending = new Map<string, Promise<string | null>>();
-  private hoverSize = 128;
   private enabled = true;
   private cursorLine = -1;
 
@@ -26,10 +25,8 @@ export class DecorationProvider {
       .get<number>("fontSize", 14);
   }
 
-  private createEmojiDecorationType(size: number) {
-    return vscode.window.createTextEditorDecorationType({
-      before: { width: `${size}px`, height: `${size}px` },
-    });
+  private createEmojiDecorationType(_size: number) {
+    return vscode.window.createTextEditorDecorationType({});
   }
 
   private createHideDecorationType() {
@@ -40,10 +37,7 @@ export class DecorationProvider {
   }
 
   private createEmojiGlowType() {
-    return vscode.window.createTextEditorDecorationType({
-      backgroundColor: "rgba(88, 166, 255, 0.12)",
-      borderRadius: "4px",
-    });
+    return vscode.window.createTextEditorDecorationType({});
   }
 
   private wrapInSvg(base64: string, size: number): string {
@@ -71,15 +65,39 @@ export class DecorationProvider {
     return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
   }
 
+  private wrapInExpandedSvg(base64: string, size: number): string {
+    const pad = Math.round(size * 0.5);
+    const barX = pad;
+    const barWidth = 2;
+    const imgX = barX + barWidth + pad;
+    const totalWidth = imgX + size;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${totalWidth}" height="${size}">` +
+      `<rect x="${barX}" y="1" width="${barWidth}" height="${size - 2}" rx="1" fill="rgba(150,150,150,0.5)"/>` +
+      `<image href="${base64}" x="${imgX}" y="0" width="${size}" height="${size}"/>` +
+      `</svg>`;
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+  }
+
+  private createExpandedSkeletonSvg(size: number): string {
+    const pad = Math.round(size * 0.5);
+    const barX = pad;
+    const barWidth = 2;
+    const imgX = barX + barWidth + pad;
+    const totalWidth = imgX + size;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${size}">` +
+      `<rect x="${barX}" y="1" width="${barWidth}" height="${size - 2}" rx="1" fill="rgba(150,150,150,0.5)"/>` +
+      `<rect x="${imgX}" y="0" width="${size}" height="${size}" rx="3" fill="rgba(150,150,150,0.2)"/>` +
+      `</svg>`;
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+  }
+
   setCursorLine(line: number) {
     this.cursorLine = line;
   }
 
   updateSettings(config: vscode.WorkspaceConfiguration) {
     const botToken = config.get<string>("botToken", "");
-    this.hoverSize = config.get<number>("hoverPreviewSize", 128);
     this.enabled = config.get<boolean>("enableInlinePreview", true);
-    this.cache.setExpiration(config.get<number>("cacheExpiration", 86400));
     this.api = botToken ? new TelegramApi(botToken) : null;
     this.disposeDecorationTypes();
     const size = this.getInlineSize();
@@ -133,29 +151,44 @@ export class DecorationProvider {
     const hover = this.createHover(match, base64);
     const isExpanded = match.line === this.cursorLine;
 
-    const iconPath = base64
-      ? vscode.Uri.parse(this.wrapInSvg(base64, size))
-      : vscode.Uri.parse(this.createSkeletonSvg(size));
-
-    // Expanded (cursor on this line) - show everything, emoji before tag
+    // Expanded (cursor on this line) - show emoji after attr closing quote
     if (isExpanded) {
+      const expandedIconPath = base64
+        ? vscode.Uri.parse(this.wrapInExpandedSvg(base64, size))
+        : vscode.Uri.parse(this.createExpandedSkeletonSvg(size));
+      const pad = Math.round(size * 0.5);
+      const totalWidth = pad + 2 + pad + size;
+
       return {
         emoji: {
-          range: new vscode.Range(match.fullRange.start, match.fullRange.start),
+          range: new vscode.Range(
+              match.fullRange.end.translate(0, 1),
+              match.fullRange.end.translate(0, 1),
+            ),
           hoverMessage: hover,
-          renderOptions: { before: { contentIconPath: iconPath } },
+          renderOptions: {
+            after: {
+              contentIconPath: expandedIconPath,
+              width: `${totalWidth}px`,
+              height: `${size}px`,
+            },
+          },
         },
         hide: [],
       };
     }
 
     // Collapsed - hide attr and fallback (if emoji loaded), show only custom emoji
+    const iconPath = base64
+      ? vscode.Uri.parse(this.wrapInSvg(base64, size))
+      : vscode.Uri.parse(this.createSkeletonSvg(size));
+
     const hideRanges: vscode.DecorationOptions[] = [
       { range: match.attrWithSpaceRange },
     ];
 
-    // Hide fallback only if we have the custom emoji loaded
-    if (base64 && match.fallbackRange) {
+    // Hide fallback (both when loaded and skeleton placeholder)
+    if (match.fallbackRange) {
       hideRanges.push({ range: match.fallbackRange });
     }
 
@@ -166,11 +199,18 @@ export class DecorationProvider {
       emoji: {
         range: new vscode.Range(emojiPosition, emojiPosition),
         hoverMessage: hover,
-        renderOptions: { before: { contentIconPath: iconPath } },
+        renderOptions: {
+          before: {
+            contentIconPath: iconPath,
+            width: `${size}px`,
+            height: `${size}px`,
+            textDecoration: `none; vertical-align: -${Math.round(size * 0.15)}px;`,
+          },
+        },
       },
       hide: hideRanges,
       glow: {
-        range: new vscode.Range(emojiPosition, emojiPosition),
+        range: match.fullRange,
         hoverMessage: hover,
       },
     };
@@ -183,48 +223,13 @@ export class DecorationProvider {
     const hover = new vscode.MarkdownString();
     hover.isTrusted = true;
     hover.supportHtml = true;
-
     if (base64) {
       hover.appendMarkdown(
-        `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:200px;">` +
-          `<div style="padding:16px 24px;background:linear-gradient(145deg,#0f0f1a 0%,#1a1a2e 50%,#16213e 100%);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.1);">` +
-          `<img src="${base64}" width="${this.hoverSize}" height="${this.hoverSize}" style="border-radius:12px;display:block;"/>` +
-          `</div>` +
-          `<div style="margin-top:12px;padding:8px 16px;background:rgba(88,166,255,0.15);border-radius:20px;border:1px solid rgba(88,166,255,0.3);">` +
-          `<span style="color:#58a6ff;font-weight:600;">✨ Premium Emoji</span>` +
-          `</div>` +
-          `</div>\n\n` +
-          `---\n\n` +
-          `| | |\n|:--|:--|\n` +
-          `| 🆔 **ID** | \`${match.emojiId}\` |\n` +
-          (match.fallbackEmoji
-            ? `| 🔄 **Fallback** | ${match.fallbackEmoji} |\n`
-            : "") +
-          `| 📦 **Cached** | ✅ Yes |`,
-      );
-    } else {
-      hover.appendMarkdown(
-        `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:200px;">` +
-          `<div style="padding:24px;background:linear-gradient(145deg,#1a1a1a 0%,#2d2d2d 100%);border-radius:16px;border:2px dashed rgba(255,255,255,0.2);">` +
-          `<span style="font-size:48px;opacity:0.5;">⏳</span>` +
-          `</div>` +
-          `<div style="margin-top:12px;padding:8px 16px;background:rgba(255,180,50,0.15);border-radius:20px;border:1px solid rgba(255,180,50,0.3);">` +
-          `<span style="color:#ffb432;font-weight:600;">⏳ Loading...</span>` +
-          `</div>` +
-          `</div>\n\n` +
-          `---\n\n` +
-          `| | |\n|:--|:--|\n` +
-          `| 🆔 **ID** | \`${match.emojiId}\` |\n` +
-          (match.fallbackEmoji
-            ? `| 🔄 **Fallback** | ${match.fallbackEmoji} |\n`
-            : "") +
-          `| 📦 **Cached** | ⏳ Loading |\n\n` +
-          (this.api
-            ? "*Fetching from Telegram API...*"
-            : "*Configure `telegramEmojiPreview.botToken`*"),
+        `<img src="${base64}" width="128" height="128" style="border-radius:8px;display:block;"/>\n\n`,
       );
     }
 
+    hover.appendMarkdown(`**ID:** \`${match.emojiId}\``);
     return hover;
   }
 
