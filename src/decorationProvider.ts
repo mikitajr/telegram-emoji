@@ -170,6 +170,7 @@ export class DecorationProvider {
               contentIconPath: expandedIconPath,
               width: `${totalWidth}px`,
               height: `${size}px`,
+              textDecoration: `none; vertical-align: -${Math.round(size * 0.15)}px;`,
             },
           },
         },
