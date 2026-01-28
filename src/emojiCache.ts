@@ -11,7 +11,7 @@ export class EmojiCache {
   private readonly cacheDir: string;
   private readonly cacheFile: string;
   private entries: Record<string, CacheEntry> = {};
-  private static readonly EXPIRATION_MS = 86400_000; // 24h
+  private static readonly EXPIRATION_MS = 86400_000;
 
   constructor(context: vscode.ExtensionContext) {
     this.cacheDir = path.join(context.globalStorageUri.fsPath, "emoji-cache");
@@ -26,9 +26,7 @@ export class EmojiCache {
         this.entries =
           JSON.parse(fs.readFileSync(this.cacheFile, "utf-8")).entries ?? {};
       }
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }
 
   private save() {
@@ -37,9 +35,7 @@ export class EmojiCache {
         this.cacheFile,
         JSON.stringify({ entries: this.entries }),
       );
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }
 
   getCacheDir() {
@@ -71,9 +67,7 @@ export class EmojiCache {
       };
       this.save();
       fs.unlinkSync(filePath);
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }
 
   remove(emojiId: string) {

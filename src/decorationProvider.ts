@@ -151,7 +151,6 @@ export class DecorationProvider {
     const hover = this.createHover(match, base64);
     const isExpanded = match.line === this.cursorLine;
 
-    // Expanded (cursor on this line) - show emoji after attr closing quote
     if (isExpanded) {
       const expandedIconPath = base64
         ? vscode.Uri.parse(this.wrapInExpandedSvg(base64, size))
@@ -178,7 +177,6 @@ export class DecorationProvider {
       };
     }
 
-    // Collapsed - hide attr and fallback (if emoji loaded), show only custom emoji
     const iconPath = base64
       ? vscode.Uri.parse(this.wrapInSvg(base64, size))
       : vscode.Uri.parse(this.createSkeletonSvg(size));
@@ -187,12 +185,10 @@ export class DecorationProvider {
       { range: match.attrWithSpaceRange },
     ];
 
-    // Hide fallback (both when loaded and skeleton placeholder)
     if (match.fallbackRange) {
       hideRanges.push({ range: match.fallbackRange });
     }
 
-    // Position for emoji icon - before fallback or before attr
     const emojiPosition = match.fallbackRange?.start ?? match.attrRange.start;
 
     return {
@@ -251,9 +247,7 @@ export class DecorationProvider {
               this.cache.set(emojiId, filePath);
               return this.cache.get(emojiId);
             }
-          } catch {
-            /* ignore */
-          }
+          } catch {}
           return null;
         })().finally(() => this.pending.delete(emojiId)),
       );

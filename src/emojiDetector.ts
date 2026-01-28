@@ -5,7 +5,7 @@ export interface EmojiMatch {
   fallbackEmoji: string | null;
   fullRange: vscode.Range;
   attrRange: vscode.Range;
-  attrWithSpaceRange: vscode.Range; // includes trailing space before >
+  attrWithSpaceRange: vscode.Range;
   fallbackRange: vscode.Range | null;
   line: number;
 }
@@ -33,18 +33,15 @@ export function detectEmojis(document: vscode.TextDocument): EmojiMatch[] {
     const fullEnd = fullStart + m[0].length;
     const fallback = m[2]?.trim() || null;
 
-    // Find attr start (emoji-id=...)
     const attrStartOffset = m[0].indexOf(m[1]);
     const attrStart = fullStart + attrStartOffset;
     const attrEnd = attrStart + m[1].length;
 
-    // Find where > is to include space before it
     const closeTagOffset = m[0].indexOf(">");
     const attrWithSpaceEnd = fullStart + closeTagOffset;
 
     const startPos = document.positionAt(fullStart);
 
-    // Find fallback position
     let fallbackRange: vscode.Range | null = null;
     if (fallback) {
       const openTagEnd = closeTagOffset + 1;
@@ -87,7 +84,6 @@ export function detectEmojis(document: vscode.TextDocument): EmojiMatch[] {
     const attrStart = fullStart + attrStartOffset;
     const attrEnd = attrStart + m[1].length;
 
-    // Find /> position
     const closeTagOffset = m[0].indexOf("/>");
     const attrWithSpaceEnd = fullStart + closeTagOffset;
 
