@@ -5,7 +5,7 @@
   "description": "Render Telegram premium custom emojis inline in your editor",
   "publisher": "mikitajr",
   "license": "MIT",
-  "icon": "icon.png",
+  "icon": "assets/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/mikitajr/telegram-emoji"
